@@ -3,6 +3,8 @@
 
 from fastapi import FastAPI ,HTTPException
 import psycopg2
+from pydantic import BaseModel
+
 
 
 
@@ -18,13 +20,17 @@ password ='74743427'
 )
 cursor=connection.cursor()
 
+class Student(BaseModel):
+    id:int =None
+    name:str =None
+    course:str =None
 
-'''this is decorator it is a function which take the another funchtion 
-as an argument ,it extends or modifies its behavior and return new function 
-without altering the original functions source code'''
+
+
 
 
 # GET ALL STUDENT
+
 @app.get('/students')
 def get_all_students():
     cursor.execute('SELECT * FROM students')
@@ -55,6 +61,63 @@ def get_single_student(id: int):# pydantic give the hit that id should be in the
         }
     except:
         raise HTTPException(status_code=404,detail='Invalid Student Id ')
+
+#Create Student Record
+
+@app.post('/students')
+def Create_Student_Records(student: Student):
+    try:
+        cursor.execute('INSERT INTO students VALUES (%s,%s,%s)',(student.id,student.name,student.course))
+        connection.commit()
+        raise HTTPException(status_code=201,detail="student record created successflly")
+    except psycopg2.IntegrityError:
+        connection.rollback()
+        raise HTTPException(status_code=404,detail="student id already exist ")
+
+#update student record 
+@app.put('/students/{id}')
+def update_student_record(student :Student,id:int):
+    cursor.execute('UPDATE students SET id=%s,name=%s,course=%s WHERE id=%s',(student.id,student.name,student.course,id))
+    if(cursor.rowcount==0):
+            raise HTTPException(status_code=404,detail='Invlid details')
+    connection.commit()
+    raise HTTPException (status_code=200,detail='student data  record updated successfully')
+
+
+#update partially using patch
+
+
+@app.patch('/students/{id}')
+def partial_update(id :int,student:Student):
+    if(student.id != None):
+        cursor.execute('UPDATE students SET id=%s WHERE id=%s',(student.name,id))
+    
+    if(student.name != None):
+        cursor.execute('UPDATE students SET name=%s WHERE id=%s',(student.name,id))
+    
+    if(student.course != None):
+        cursor.execute('UPDATE students SET course=%s WHERE id=%s',(student.name,id))
+
+    if(cursor.rowcount==0):
+        raise HTTPException(status_code=404,detail='Invlid id entered')
+    connection.commit()
+    raise HTTPException(status_code=200,detail='partial update successfully ')
+
+
+#delete the record Student 
+
+@app.delete('/students/{id}')
+def delete_student_record(id :int):
+    cursor.execute('DELETE FROM students WHERE id=%s',(id,))
+    if(cursor.rowcount==0):
+            raise HTTPException(status_code=404,detail='INVALID ID')
+    connection.commit()
+    raise HTTPException(status_code=200,detail='record deleted successfully')
+    
+        
+
+
+
     
 
 
