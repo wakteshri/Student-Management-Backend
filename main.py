@@ -32,7 +32,7 @@ app.add_middleware(
 
 connection =psycopg2.connect('postgresql://neondb_owner:npg_bRygtwKm4i7S@ep-lucky-meadow-b3lzk70e-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require')
 
-cursor=connection.cursor()
+
 
 class Student(BaseModel):
     id:int =None
@@ -47,6 +47,7 @@ class Student(BaseModel):
 
 @app.get('/students')
 def get_all_students():
+    cursor=connection.cursor()
     cursor.execute('SELECT * FROM students')
     rows=cursor.fetchall()
     print(rows)
@@ -60,20 +61,24 @@ def get_all_students():
             'name':row[1],
             'course':row[2]
         })
+    cursor.close()
     return result
 #GET SINGLE STUDENT
 
 @app.get('/students/{id}')
 def get_single_student(id: int):# pydantic give the hit that id should be in the integer 
     try:
+        cursor=connection.cursor()
         cursor.execute('select * from students where id=%s',(id,))
         row=cursor.fetchone()
+        cursor.close()
         return {
             'id':row[0],
             'name':row[1],
             'course': row[2]
         }
     except:
+        cursor.close()
         raise HTTPException(status_code=404,detail='Invalid Student Id ')
 
 #Create Student Record
@@ -81,20 +86,26 @@ def get_single_student(id: int):# pydantic give the hit that id should be in the
 @app.post('/students')
 def Create_Student_Records(student: Student):
     try:
+        cursor=connection.cursor()
         cursor.execute('INSERT INTO students VALUES (%s,%s,%s)',(student.id,student.name,student.course))
         connection.commit()
+        cursor.close()
         raise HTTPException(status_code=201,detail="student record created successflly")
     except psycopg2.IntegrityError:
         connection.rollback()
+        cursor.close()
         raise HTTPException(status_code=404,detail="student id already exist ")
 
 #update student record 
 @app.put('/students/{id}')
 def update_student_record(student :Student,id:int):
+    cursor=connection.cursor()
     cursor.execute('UPDATE students SET id=%s,name=%s,course=%s WHERE id=%s',(student.id,student.name,student.course,id))
     if(cursor.rowcount==0):
+            cursor.close()
             raise HTTPException(status_code=404,detail='Invlid details')
     connection.commit()
+    cursor.close()
     raise HTTPException (status_code=200,detail='student data  record updated successfully')
 
 
@@ -103,6 +114,7 @@ def update_student_record(student :Student,id:int):
 
 @app.patch('/students/{id}')
 def partial_update(id :int,student:Student):
+    cursor=connection.cursor()
     if(student.id != None):
         cursor.execute('UPDATE students SET id=%s WHERE id=%s',(student.name,id))
     
@@ -113,8 +125,10 @@ def partial_update(id :int,student:Student):
         cursor.execute('UPDATE students SET course=%s WHERE id=%s',(student.name,id))
 
     if(cursor.rowcount==0):
+        cursor.close()
         raise HTTPException(status_code=404,detail='Invlid id entered')
     connection.commit()
+    cursor.close()
     raise HTTPException(status_code=200,detail='partial update successfully ')
 
 
@@ -122,10 +136,13 @@ def partial_update(id :int,student:Student):
 
 @app.delete('/students/{id}')
 def delete_student_record(id :int):
+    cursor=connection.cursor()
     cursor.execute('DELETE FROM students WHERE id=%s',(id,))
     if(cursor.rowcount==0):
+            cursor.close()
             raise HTTPException(status_code=404,detail='INVALID ID')
     connection.commit()
+    cursor.close()
     raise HTTPException(status_code=200,detail='record deleted successfully')
     
         
