@@ -4,6 +4,7 @@
 from fastapi import FastAPI ,HTTPException
 import psycopg2
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 from  dotenv import load_dotenv
 import os
 load_dotenv()
@@ -13,14 +14,24 @@ load_dotenv()
 
 
 app =FastAPI()#app is object and FastAPI is class
-
-connection=psycopg2.connect(
-host=os.getenv('DB_HOST'),
-port=os.getenv('DB_PORT'),
-database =os.getenv('DB_DATABASE'),
-user = os.getenv('DB_USER'),
-password =os.getenv('DB_PASSWORD')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Use ["*"] to allow all origins
+    allow_credentials=False,
+    allow_methods=["*"],    # Allows all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],    # Allows all headers
 )
+
+# connection=psycopg2.connect(
+# host=os.getenv('DB_HOST'),
+# port=os.getenv('DB_PORT'),
+# database =os.getenv('DB_DATABASE'),
+# user = os.getenv('DB_USER'),
+# password =os.getenv('DB_PASSWORD')
+# )
+
+connection =psycopg2.connect('postgresql://neondb_owner:npg_bRygtwKm4i7S@ep-lucky-meadow-b3lzk70e-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require')
+
 cursor=connection.cursor()
 
 class Student(BaseModel):
